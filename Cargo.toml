@@ -1,10 +1,8 @@
-[package]
-name = "RUST"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+resolver = "2"
+members = ["lib", "miner", "node", "wallet"]
 
-[dependencies]
+[workspace.dependencies]
 sha2 = "0.10"       # SHA-256 hashing library
 chrono = "0.4"      # Time handling for timestamps
 serde = { version = "1.0", features = ["derive"] }  # JSON serialization
-
