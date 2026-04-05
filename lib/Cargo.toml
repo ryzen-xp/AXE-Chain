@@ -4,3 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+chrono = { workspace = true, features = ["serde"] }
+ciborium = "0.2.2"
+ecdsa = { version = "0.16.9", features = ["signing", "verifying", "serde", "pem"] }
+k256 = { version = "0.13.4", features = ["serde", "pem"] }
+serde.workspace = true
+sha256 = "1.6.0"
+uint = "0.10.0"
+uuid = "1.23.0"
