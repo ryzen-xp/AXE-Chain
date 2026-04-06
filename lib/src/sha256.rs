@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sha256::digest;
 use std::fmt;
 
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
 pub struct Hash(U256);
 
 impl Hash {

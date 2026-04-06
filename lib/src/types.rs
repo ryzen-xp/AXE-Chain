@@ -1,10 +1,13 @@
-use crate::{U256, sha256::Hash};
+use std::collections::HashMap;
+use crate::error::CoinError;
+use crate::{U256, sha256::Hash, util::MerkleRoot};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Blockchain {
+    pub utxos: HashMap<Hash, TransactionOutput>,
     pub blocks: Vec<Block>,
 }
 
@@ -18,8 +21,8 @@ pub struct Block {
 pub struct BlockHeader {
     pub timestamp: DateTime<Utc>,
     pub nonce: u64,
-    pub prev_block_hash: [u8; 32],
-    pub merkle_root: [u8; 32],
+    pub prev_block_hash: Hash,
+    pub merkle_root: MerkleRoot,
     pub target: U256,
 }
 
@@ -42,25 +45,75 @@ pub struct TransactionOutput {
     pub pubkey: [u8; 32],
 }
 
+//  Implimented the  Blockchain methods !
+
 impl Blockchain {
     pub fn new() -> Self {
-        Blockchain { blocks: vec![] }
+        Blockchain {
+            utxos: HashMap::new(),
+            blocks: vec![],
+        }
     }
 
-    pub fn add_block(&mut self, block: Block) {
+    pub fn add_block(&mut self, block: Block) -> Result<(), CoinError> {
+        if self.blocks.is_empty() {
+            //  Checking that the previous block  is zero or not if zero it's mean it's first block of chain !
+            if block.header.prev_block_hash != Hash::zero() {
+                println!("zero hash!!");
+
+                return Err(CoinError::InvalidBlock);
+            }
+        } else {
+            let last_block = self.blocks.last().unwrap();
+
+            if block.header.prev_block_hash != last_block.hash() {
+                println!("Prev Block Hash is Wrong!!");
+
+                return Err(CoinError::InvalidBlock);
+            }
+
+            if !block.header.hash().match_target(block.header.target) {
+                println!("Does not match target");
+                return Err(CoinError::InvalidBlock);
+            }
+
+            let merkle_root = MerkleRoot::calculate(&block.transactions);
+
+            if merkle_root != block.header.merkle_root {
+                println!("Mismatch Merkle root !!");
+
+                return Err(CoinError::InvalidBlock);
+            }
+
+            // Checking  timestamp of the blocks , new block timestamp should be greaater then the  prev_block timestamp !!
+
+            if block.header.timestamp <= last_block.header.timestamp {
+
+                println!("Timestamp mismatch !!");
+                return Err(CoinError::InvalidBlock);
+            }
+
+            //  verifying all tx in blocks
+
+        }
+
         self.blocks.push(block);
+
+        Ok(())
     }
 }
 
-///   Impl Block Type 
+///   Impl Block Type
 
 impl Block {
     pub fn new(header: BlockHeader, transactions: Vec<Transaction>) -> Self {
         Block {
-            header: header,
-            transactions: transactions,
+            header,
+            transactions,
         }
     }
+
+    pub fn verify_transactions(&self) {}
 
     pub fn hash(&self) -> Hash {
         Hash::hash(self)
@@ -69,17 +122,16 @@ impl Block {
 
 impl BlockHeader {
     pub fn new(
-        &self,
         timestamp: DateTime<Utc>,
         nonce: u64,
-        pre_block_hash: [u8; 32],
-        merkle_root: [u8; 32],
+        prev_block_hash: Hash,
+        merkle_root: MerkleRoot,
         target: U256,
     ) -> Self {
         BlockHeader {
             timestamp,
             nonce,
-            prev_block_hash: pre_block_hash,
+            prev_block_hash,
             merkle_root,
             target,
         }
@@ -91,14 +143,14 @@ impl BlockHeader {
 }
 
 impl Transaction {
-    pub fn new(&self, input: Vec<TransactionInput>, output: Vec<TransactionOutput>) -> Self {
+    pub fn new(inputs: Vec<TransactionInput>, outputs: Vec<TransactionOutput>) -> Self {
         Transaction {
-            inputs: input,
-            outputs: output,
+            inputs,
+            outputs,
         }
     }
 
-    pub fn hash(&self) -> Hash{
+    pub fn hash(&self) -> Hash {
         Hash::hash(self)
     }
 }
