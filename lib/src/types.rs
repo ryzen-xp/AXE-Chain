@@ -1,8 +1,8 @@
-use std::collections::HashMap;
 use crate::error::CoinError;
 use crate::{U256, sha256::Hash, util::MerkleRoot};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -34,15 +34,15 @@ pub struct Transaction {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TransactionInput {
-    pub prev_transaction_output_hash: [u8; 32],
-    pub signature: [u8; 32],
+    pub prev_transaction_output_hash: Hash,
+    pub signature: Hash,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TransactionOutput {
     pub value: u64,
     pub unique_key: Uuid,
-    pub pubkey: [u8; 32],
+    pub pubkey: Hash,
 }
 
 //  Implimented the  Blockchain methods !
@@ -88,7 +88,6 @@ impl Blockchain {
             // Checking  timestamp of the blocks , new block timestamp should be greaater then the  prev_block timestamp !!
 
             if block.header.timestamp <= last_block.header.timestamp {
-
                 println!("Timestamp mismatch !!");
                 return Err(CoinError::InvalidBlock);
             }
@@ -100,6 +99,23 @@ impl Blockchain {
         self.blocks.push(block);
 
         Ok(())
+    }
+
+    pub fn rebuild_utxos(&mut self) {
+
+        for block in &self.blocks {
+
+            for tx in &block.transactions {
+                for input in &tx.inputs {
+                    self.utxos.remove(&input.prev_transaction_output_hash);
+                }
+
+                for output in &tx.outputs {
+                    self.utxos.insert(tx.hash(), output.clone());
+                }
+            }
+        }
+        
     }
 }
 
@@ -144,10 +160,7 @@ impl BlockHeader {
 
 impl Transaction {
     pub fn new(inputs: Vec<TransactionInput>, outputs: Vec<TransactionOutput>) -> Self {
-        Transaction {
-            inputs,
-            outputs,
-        }
+        Transaction { inputs, outputs }
     }
 
     pub fn hash(&self) -> Hash {
