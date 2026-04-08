@@ -26,6 +26,12 @@ impl Hash {
         Hash(U256::from_big_endian(&hash_array))
     }
 
+    pub fn to_bytes(&self) -> [u8; 32] {
+        let bytes: [u8; 32] = self.0.to_little_endian();
+
+        bytes.as_slice().try_into().unwrap()
+    }
+
     pub fn match_target(&self, target: U256) -> bool {
         self.0 < target
     }
@@ -65,5 +71,17 @@ mod test {
         let h = Hash::hash(&data);
 
         println!("Hashed data: {:?}", h.0);
+    }
+
+    #[test]
+    fn test_as_bytes() {
+        let data = TestData {
+            a: 420,
+            b: String::from_str("Ryzen").unwrap(),
+        };
+
+        let bytes = Hash::hash(&data).to_bytes();
+
+        println!("Bytes of data : {:?}", bytes);
     }
 }

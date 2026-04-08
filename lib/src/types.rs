@@ -93,7 +93,6 @@ impl Blockchain {
             }
 
             //  verifying all tx in blocks
-
         }
 
         self.blocks.push(block);
@@ -102,9 +101,7 @@ impl Blockchain {
     }
 
     pub fn rebuild_utxos(&mut self) {
-
         for block in &self.blocks {
-
             for tx in &block.transactions {
                 for input in &tx.inputs {
                     self.utxos.remove(&input.prev_transaction_output_hash);
@@ -115,7 +112,6 @@ impl Blockchain {
                 }
             }
         }
-        
     }
 }
 

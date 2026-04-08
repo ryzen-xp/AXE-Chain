@@ -1,8 +1,10 @@
+use crate::sha256::Hash;
 use ecdsa::{
     //  signature::Signer,
     Signature as ECDSASignature,
     SigningKey,
     VerifyingKey,
+    signature::{Signer,Verifier},
 };
 use k256::Secp256k1;
 use k256::elliptic_curve::rand_core::OsRng;
@@ -27,6 +29,27 @@ impl PrivateKey {
     }
 }
 
+//  Implimenting Signature  Trait
+
+impl Signature {
+    pub fn sign_output(output_tx: &Hash, private_key: &PrivateKey) -> Signature {
+        let sign_key = &private_key.0;
+
+        let signed = sign_key.sign(&output_tx.to_bytes());
+
+        Signature(signed)
+    }
+
+    pub fn verify(&self, output_hash: &Hash, pub_key: &PublicKey) -> bool {
+        let verifier_key = pub_key.0;
+
+        verifier_key
+            .verify(&output_hash.to_bytes(), &self.0)
+            .is_ok()
+    }
+}
+
+//  Signkey  Serde  Module
 mod signkey_serde {
     use serde::Deserialize;
     pub fn serialize<S>(
