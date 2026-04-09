@@ -7,6 +7,10 @@ construct_uint! {
   pub struct U256(4);
 }
 
+pub const INITIAL_REWARD: i32 = 1;
+
+pub const HALVING_INTERVAL: i32 = 23;
+
 pub mod crypto;
 pub mod error;
 pub mod sha256;

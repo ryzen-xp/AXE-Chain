@@ -4,7 +4,7 @@ use ecdsa::{
     Signature as ECDSASignature,
     SigningKey,
     VerifyingKey,
-    signature::{Signer,Verifier},
+    signature::{Signer, Verifier},
 };
 use k256::Secp256k1;
 use k256::elliptic_curve::rand_core::OsRng;
