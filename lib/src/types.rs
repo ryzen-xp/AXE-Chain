@@ -213,9 +213,43 @@ impl Block {
 
     pub fn calculate_miner_reward(
         &self,
-        _utxo: HashMap<Hash, TransactionOutput>,
+        utxo: HashMap<Hash, TransactionOutput>,
     ) -> Result<u64, CoinError> {
-        Ok(1)
+        let mut inputs: HashMap<Hash, TransactionOutput> = HashMap::new();
+
+        let mut outputs: HashMap<Hash, TransactionOutput> = HashMap::new();
+
+        for tx in self.transactions.iter().skip(1) {
+            for input in &tx.inputs {
+                if inputs.contains_key(&input.prev_transaction_output_hash) {
+                    return Err(CoinError::InvalidTransaction);
+                }
+
+                let option_prv_output = utxo.get(&input.prev_transaction_output_hash);
+
+                if option_prv_output.is_none() {
+                    return Err(CoinError::InvalidTransaction);
+                }
+
+                let prev_output = option_prv_output.unwrap();
+
+                inputs.insert(input.prev_transaction_output_hash, prev_output.clone());
+            }
+
+            for output in &tx.outputs {
+                if outputs.contains_key(&output.hash()) {
+                    return Err(CoinError::InvalidTransaction);
+                }
+
+                outputs.insert(output.hash(), output.clone());
+            }
+        }
+
+        let input_value: u64 = inputs.values().map(|x| x.value).sum();
+
+        let output_value: u64 = outputs.values().map(|x| x.value).sum();
+
+        Ok(input_value - output_value)
     }
 
     pub fn hash(&self) -> Hash {
