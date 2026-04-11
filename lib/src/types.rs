@@ -3,12 +3,13 @@ use crate::error::CoinError;
 use crate::{U256, sha256::Hash, util::MerkleRoot};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Blockchain {
     pub utxos: HashMap<Hash, TransactionOutput>,
+    pub target: U256,
     pub blocks: Vec<Block>,
 }
 
@@ -52,6 +53,7 @@ impl Blockchain {
     pub fn new() -> Self {
         Blockchain {
             utxos: HashMap::new(),
+            target: crate::MIN_TARGET,
             blocks: vec![],
         }
     }
@@ -96,9 +98,53 @@ impl Blockchain {
             //  verifying all tx in blocks
         }
 
+        let block_transactions: HashSet<_> = block.transactions.iter().map(|x| x.hash()).collect();
+
+        self.mempool
+            .retain(|(_, tx)| !block_transactions.contains(&tx.hash()));
+
         self.blocks.push(block);
+        self.try_adjest_target();
 
         Ok(())
+    }
+
+    pub fn try_adjust_target(&mut self) {
+        if self.blocks.is_empty() {
+            return;
+        }
+        if self.blocks.len() % crate::DIFFICULTY_UPDATE_INTERVAL as usize != 0 {
+            return;
+        }
+        // measure the time it took to mine the last
+
+        // crate::DIFFICULTY_UPDATE_INTERVAL blocks
+        // with chrono
+        let start_time = self.blocks
+            [self.blocks.len() - crate::DIFFICULTY_UPDATE_INTERVAL as usize]
+            .header
+            .timestamp;
+        let end_time = self.blocks.last().unwrap().header.timestamp;
+        let time_diff = end_time - start_time;
+        // convert time_diff to seconds
+        let time_diff_seconds = time_diff.num_seconds();
+        // calculate the ideal number of seconds
+        let target_seconds = crate::IDEAL_BLOCK_TIME * crate::DIFFICULTY_UPDATE_INTERVAL;
+        // multiply the current target by actual time divided by
+
+        let new_target = self.target * (time_diff_seconds as f64 / target_seconds as f64) as usize;
+        // clamp new_target to be within the range of
+        // 4 * self.target and self.target / 4
+        let new_target = if new_target < self.target / 4 {
+            self.target / 4
+        } else if new_target > self.target * 4 {
+            self.target * 4
+        } else {
+            new_target
+        };
+        // if the new target is more than the minimum target,
+        // set it to the minimum target
+        self.target = new_target.min(crate::MIN_TARGET);
     }
 
     pub fn rebuild_utxos(&mut self) {
