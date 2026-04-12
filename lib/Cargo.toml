@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bigdecimal = "0.4.10"
 chrono = { workspace = true, features = ["serde"] }
 ciborium = "0.2.2"
 ecdsa = { version = "0.16.9", features = ["signing", "verifying", "serde", "pem"] }

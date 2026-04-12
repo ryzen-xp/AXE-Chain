@@ -1,6 +1,7 @@
 use crate::crypto::{PublicKey, Signature};
 use crate::error::CoinError;
 use crate::{U256, sha256::Hash, util::MerkleRoot};
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -104,7 +105,9 @@ impl Blockchain {
             .retain(|(_, tx)| !block_transactions.contains(&tx.hash()));
 
         self.blocks.push(block);
-        self.try_adjest_target();
+
+        //  This used to adjust the defficulty
+        self::Blockchain::try_adjust_target(&mut self);
 
         Ok(())
     }
@@ -132,15 +135,27 @@ impl Blockchain {
         let target_seconds = crate::IDEAL_BLOCK_TIME * crate::DIFFICULTY_UPDATE_INTERVAL;
         // multiply the current target by actual time divided by
 
-        let new_target = self.target * (time_diff_seconds as f64 / target_seconds as f64) as usize;
+        let new_target = BigDecimal::parse_bytes(self.target.to_string().as_bytes(), 10)
+            .expect("Failed to convert ")
+            * (BigDecimal::from(time_diff_seconds) / BigDecimal::from(target_seconds));
+
+        let new_target_str = new_target
+            .to_string()
+            .split(".")
+            .next()
+            .expect("Failed to convert")
+            .to_owned();
+
+        let new_target_U256 =
+            U256::from_str_radix(&new_target_str, 10).expect("Failed to  convert into U256");
         // clamp new_target to be within the range of
         // 4 * self.target and self.target / 4
-        let new_target = if new_target < self.target / 4 {
+        let new_target = if new_target_U256 < self.target / 4 {
             self.target / 4
-        } else if new_target > self.target * 4 {
+        } else if new_target_U256 > self.target * 4 {
             self.target * 4
         } else {
-            new_target
+            new_target_U256
         };
         // if the new target is more than the minimum target,
         // set it to the minimum target
