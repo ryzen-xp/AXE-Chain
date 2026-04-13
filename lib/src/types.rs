@@ -9,14 +9,15 @@ use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Blockchain {
-    pub utxos: HashMap<Hash, TransactionOutput>,
-    pub target: U256,
-    pub blocks: Vec<Block>,
+    utxos: HashMap<Hash, TransactionOutput>,
+    target: U256,
+    blocks: Vec<Block>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Block {
     pub header: BlockHeader,
+    pub nonce: U256,
     pub transactions: Vec<Transaction>,
 }
 
@@ -59,6 +60,22 @@ impl Blockchain {
         }
     }
 
+    pub fn utxos(&self) -> &HashMap<Hash, TransactionOutput> {
+        &self.utxos
+    }
+
+    pub fn target(&self) -> U256 {
+        self.target
+    }
+
+    pub fn blocks(&self) -> impl Iterator<Item = &Block> {
+        self.blocks.iter()
+    }
+
+    pub fn block_hieght(&self) -> u64 {
+        self.blocks.len() as u64
+    }
+
     pub fn add_block(&mut self, block: Block) -> Result<(), CoinError> {
         if self.blocks.is_empty() {
             //  Checking that the previous block  is zero or not if zero it's mean it's first block of chain !
@@ -99,15 +116,14 @@ impl Blockchain {
             //  verifying all tx in blocks
         }
 
-        let block_transactions: HashSet<_> = block.transactions.iter().map(|x| x.hash()).collect();
+        let _block_transactions: HashSet<_> = block.transactions.iter().map(|x| x.hash()).collect();
 
-        self.mempool
-            .retain(|(_, tx)| !block_transactions.contains(&tx.hash()));
-
+        // self.mempool
+        //     .retain(|(_, tx)| !block_transactions.contains(&tx.hash()));
         self.blocks.push(block);
 
         //  This used to adjust the defficulty
-        self::Blockchain::try_adjust_target(&mut self);
+        self.try_adjust_target();
 
         Ok(())
     }
@@ -146,16 +162,16 @@ impl Blockchain {
             .expect("Failed to convert")
             .to_owned();
 
-        let new_target_U256 =
+        let new_target_u256 =
             U256::from_str_radix(&new_target_str, 10).expect("Failed to  convert into U256");
         // clamp new_target to be within the range of
         // 4 * self.target and self.target / 4
-        let new_target = if new_target_U256 < self.target / 4 {
+        let new_target = if new_target_u256 < self.target / 4 {
             self.target / 4
-        } else if new_target_U256 > self.target * 4 {
+        } else if new_target_u256 > self.target * 4 {
             self.target * 4
         } else {
-            new_target_U256
+            new_target_u256
         };
         // if the new target is more than the minimum target,
         // set it to the minimum target
@@ -180,9 +196,10 @@ impl Blockchain {
 ///   Impl Block Type
 
 impl Block {
-    pub fn new(header: BlockHeader, transactions: Vec<Transaction>) -> Self {
+    pub fn new(header: BlockHeader, nonce: U256, transactions: Vec<Transaction>) -> Self {
         Block {
             header,
+            nonce,
             transactions,
         }
     }
@@ -311,6 +328,24 @@ impl Block {
         let output_value: u64 = outputs.values().map(|x| x.value).sum();
 
         Ok(input_value - output_value)
+    }
+
+    pub fn mine_blocks(&mut self, steps: usize) -> bool {
+        if self.hash().match_target(self.header.target) {
+            return true;
+        }
+
+        for _ in 0..steps {
+            if let Some(nonce) = self.nonce.checked_add(U256::from(1u64)) {
+                self.nonce = nonce;
+            }
+
+            if self.hash().match_target(self.header.target) {
+                return true;
+            }
+        }
+
+        false
     }
 
     pub fn hash(&self) -> Hash {
