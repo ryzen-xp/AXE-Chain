@@ -9,9 +9,10 @@ use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Blockchain {
-    utxos: HashMap<Hash, TransactionOutput>,
+    utxos: HashMap<Hash, (bool, TransactionOutput)>,
     target: U256,
     blocks: Vec<Block>,
+    mempool: Vec<Transaction>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -57,10 +58,11 @@ impl Blockchain {
             utxos: HashMap::new(),
             target: crate::MIN_TARGET,
             blocks: vec![],
+            mempool: vec![],
         }
     }
 
-    pub fn utxos(&self) -> &HashMap<Hash, TransactionOutput> {
+    pub fn utxos(&self) -> &HashMap<Hash, (bool, TransactionOutput)> {
         &self.utxos
     }
 
@@ -74,6 +76,10 @@ impl Blockchain {
 
     pub fn block_hieght(&self) -> u64 {
         self.blocks.len() as u64
+    }
+
+    pub fn mempool(&self) -> impl Iterator<Item = &Transaction> {
+        self.mempool.iter()
     }
 
     pub fn add_block(&mut self, block: Block) -> Result<(), CoinError> {
@@ -186,10 +192,50 @@ impl Blockchain {
                 }
 
                 for output in &tx.outputs {
-                    self.utxos.insert(tx.hash(), output.clone());
+                    self.utxos.insert(tx.hash(), (false, output.clone()));
                 }
             }
         }
+    }
+
+    pub fn add_tx_mempool(&mut self, tx: Transaction) -> Result<(), CoinError> {
+        let mut known_inputs: HashSet<Hash> = HashSet::new();
+
+        for input in &tx.inputs {
+            if !self.utxos.contains_key(&input.prev_transaction_output_hash) {
+                return Err(CoinError::InvalidTransactionInput);
+            }
+
+            if known_inputs.contains(&input.prev_transaction_output_hash) {
+                return Err(CoinError::InvalidTransaction);
+            }
+
+            known_inputs.insert(input.prev_transaction_output_hash);
+        }
+
+        self.mempool.push(tx);
+
+        self.mempool.sort_by_key(|tx| {
+            let all_inputs = tx
+                .inputs
+                .iter()
+                .map(|x| {
+                    self.utxos
+                        .get(&x.prev_transaction_output_hash)
+                        .expect("failed to get output")
+                        .1
+                        .value
+                })
+                .sum::<u64>();
+
+            let all_output = tx.outputs.iter().map(|x| x.value).sum::<u64>();
+
+            let miner_fees = all_inputs - all_output;
+
+            miner_fees
+        });
+
+        Ok(())
     }
 }
 
