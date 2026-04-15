@@ -12,7 +12,7 @@ pub struct Blockchain {
     utxos: HashMap<Hash, (bool, TransactionOutput)>,
     target: U256,
     blocks: Vec<Block>,
-    mempool: Vec<Transaction>,
+    mempool: Vec<(DateTime<Utc>, Transaction)>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -213,10 +213,33 @@ impl Blockchain {
             known_inputs.insert(input.prev_transaction_output_hash);
         }
 
-        self.mempool.push(tx);
+        for input in &tx.inputs {
+
+            if let Some((true , _) ) = self.utxos.get(&input.prev_transaction_output_hash) {
+                 let  refrencing_transaction  = self.mempool.iter().enumerate().find(|(_, (_,tx))|{
+                    tx.outputs.iter().any(|output| {
+                        output.hash() == input.prev_transaction_output_hash
+                    })
+                 })  ; 
+
+
+                 if let Some((idx , refrencing_transaction)) = refrencing_transaction {
+                    for input in &refrencing_transaction.1.inputs {
+
+                        self.utxos.entry(input.prev_transaction_output_hash).and_modify(|(x,_) | {
+                            *x = false;
+                        });
+                    }
+
+                    self.mempool.remove(idx);
+                 }
+            }
+        }
+
+        self.mempool.push((Utc::now() , tx));
 
         self.mempool.sort_by_key(|tx| {
-            let all_inputs = tx
+            let all_inputs = tx.1
                 .inputs
                 .iter()
                 .map(|x| {
@@ -228,7 +251,7 @@ impl Blockchain {
                 })
                 .sum::<u64>();
 
-            let all_output = tx.outputs.iter().map(|x| x.value).sum::<u64>();
+            let all_output = tx.1.outputs.iter().map(|x| x.value).sum::<u64>();
 
             let miner_fees = all_inputs - all_output;
 
