@@ -1,3 +1,19 @@
+use super::{Block, Transaction, TransactionOutput};
+use crate::error::CoinError;
+use crate::{MAX_MEMPOOL_TRANSACTION_AGE, U256, sha256::Hash, util::MerkleRoot};
+use bigdecimal::BigDecimal;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Blockchain {
+    utxos: HashMap<Hash, (bool, TransactionOutput)>,
+    target: U256,
+    blocks: Vec<Block>,
+    mempool: Vec<(DateTime<Utc>, Transaction)>,
+}
+
 impl Blockchain {
     pub fn new() -> Self {
         Blockchain {
