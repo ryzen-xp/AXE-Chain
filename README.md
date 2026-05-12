@@ -202,3 +202,4 @@ Please keep code formatted with `rustfmt` and linted with `clippy` before submit
 ## Author
 
 Built by [@ryzen-xp](https://github.com/ryzen-xp)
+
