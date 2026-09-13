@@ -1,4 +1,4 @@
-# ⛓️ AXE-Chain
+# ⛓️ AXE-Chain  ⛓️
 
 [![Build](https://github.com/ryzen-xp/Blockchain/actions/workflows/rust.yml/badge.svg)](https://github.com/ryzen-xp/Blockchain/actions/workflows/rust.yml)
 [![Language](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
@@ -10,15 +10,28 @@ A **Proof of Work blockchain** built from scratch in Rust. AXE-Chain implements 
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [How It Works](#how-it-works)
-- [Getting Started](#getting-started)
-- [Usage](#usage)
-- [Dependencies](#dependencies)
-- [CI](#ci)
-- [Contributing](#contributing)
+- [⛓️ AXE-Chain  ⛓️](#️-axe-chain--️)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Architecture](#architecture)
+  - [Project Structure](#project-structure)
+  - [How It Works](#how-it-works)
+    - [Blocks](#blocks)
+    - [Proof of Work](#proof-of-work)
+    - [Chain Validation](#chain-validation)
+    - [Genesis Block](#genesis-block)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Clone](#clone)
+    - [Build](#build)
+    - [Test](#test)
+  - [Usage](#usage)
+    - [Run the miner](#run-the-miner)
+    - [Run a node](#run-a-node)
+    - [Use the wallet](#use-the-wallet)
+  - [Dependencies](#dependencies)
+  - [Contributing](#contributing)
+  - [Author](#author)
 
 ---
 
