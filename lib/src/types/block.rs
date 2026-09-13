@@ -69,13 +69,13 @@ impl Block {
                     return Err(CoinError::InvalidSignature);
                 }
 
-                input = input + previous_output.value;
+                input += previous_output.value;
 
                 inputs.insert(ip.prev_transaction_output_hash, previous_output.clone());
             }
 
             for op in &tx.outputs {
-                output = output + op.value;
+                output += op.value;
             }
 
             if input < output {
@@ -103,8 +103,8 @@ impl Block {
 
         let miner_reward = self.calculate_miner_reward(utxo).unwrap();
 
-        let block_reward = (crate::INITIAL_REWARD as u64) * 10u64.pow(8)
-            / 2u64.pow((predicted_block_height / crate::HALVING_INTERVAL as u64) as u32);
+        let block_reward = crate::INITIAL_REWARD * 10u64.pow(8)
+            / 2u64.pow((predicted_block_height / crate::HALVING_INTERVAL) as u32);
 
         let total_coinbase_tx_outputs_value: u64 =
             coinbase_tx.outputs.iter().map(|op| op.value).sum();
