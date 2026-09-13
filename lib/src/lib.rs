@@ -1,3 +1,5 @@
+#![allow(clippy::manual_div_ceil)]
+
 use serde::{Deserialize, Serialize};
 use uint::construct_uint;
 

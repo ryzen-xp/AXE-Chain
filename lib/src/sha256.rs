@@ -7,6 +7,7 @@ use std::fmt;
 pub struct Hash(U256);
 
 impl Hash {
+    #[allow(clippy::self_named_constructors)]
     pub fn hash<T: Serialize>(data: &T) -> Self {
         let mut serialized = vec![];
 
