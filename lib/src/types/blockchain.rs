@@ -106,7 +106,11 @@ impl Blockchain {
         if self.blocks.is_empty() {
             return;
         }
-        if !self.blocks.len().is_multiple_of(crate::DIFFICULTY_UPDATE_INTERVAL as usize) {
+        if !self
+            .blocks
+            .len()
+            .is_multiple_of(crate::DIFFICULTY_UPDATE_INTERVAL as usize)
+        {
             return;
         }
         // measure the time it took to mine the last
@@ -220,8 +224,6 @@ impl Blockchain {
                     .sum::<u64>();
 
             let all_output = tx.1.outputs.iter().map(|x| x.value).sum::<u64>();
-
-            
 
             all_inputs - all_output
         });
