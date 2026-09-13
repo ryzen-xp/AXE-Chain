@@ -14,6 +14,12 @@ pub struct Blockchain {
     mempool: Vec<(DateTime<Utc>, Transaction)>,
 }
 
+impl Default for Blockchain {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Blockchain {
     pub fn new() -> Self {
         Blockchain {
@@ -100,7 +106,11 @@ impl Blockchain {
         if self.blocks.is_empty() {
             return;
         }
-        if self.blocks.len() % crate::DIFFICULTY_UPDATE_INTERVAL as usize != 0 {
+        if !self
+            .blocks
+            .len()
+            .is_multiple_of(crate::DIFFICULTY_UPDATE_INTERVAL as usize)
+        {
             return;
         }
         // measure the time it took to mine the last
@@ -215,9 +225,7 @@ impl Blockchain {
 
             let all_output = tx.1.outputs.iter().map(|x| x.value).sum::<u64>();
 
-            let miner_fees = all_inputs - all_output;
-
-            miner_fees
+            all_inputs - all_output
         });
 
         Ok(())
